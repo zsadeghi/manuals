@@ -43,6 +43,8 @@ We need two terminal sessions; one to run Firecracker from, and the other to iss
 
 ### Starting Firecracker
 
+> To start off you can use [start.sh](https://github.com/zsadeghi/manuals/blob/master/firecracker/start.sh).
+
 In the first session we want to make sure there is no existing socket file: 
 
 ```bash
@@ -56,6 +58,8 @@ firecracker --api-sock /tmp/firecracker.socket
 ```
 
 ### Starting the Image Using the API
+
+> To run the image you can use [run.sh](https://github.com/zsadeghi/manuals/blob/master/firecracker/run.sh).
 
 In the second terminal session, we first need to set the guest kernel:
 
