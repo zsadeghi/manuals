@@ -83,7 +83,44 @@ Excuted `make` to start the build:
 make vmlinux
 ```
 
+#### Troubleshooting
 
+I faced some errors when trying the above command, which I fixed as follows.
+
+##### Compile errors
+
+We wanted to compile the kernel from source code and by running the above command we faced the following error:
+
+```
+error: ‘-mindirect-branch’ and ‘-fcf-protection’ are not compatible
+```
+
+looking for this error on Google led me to [this kernel bug](https://bugs.launchpad.net/ubuntu/+source/gcc-9/+bug/1830961) and a comment suggested using gcc-8. To install gcc-8 alongside the existing gcc-9 we use the following commands:
+
+```bash
+sudo apt install gcc-8
+```
+```bash
+sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 800 --slave /usr/bin/g++ g++ /usr/bin/g++-8
+```
+```bash
+sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-9 900 --slave /usr/bin/g++ g++ /usr/bin/g++-9
+```
+Finally to instruct the system to use gcc-8 as the default we run 
+
+```bash
+sudo update-alternatives --config gcc
+```
+
+##### Dependency failures
+
+Attempting to compile again would result in some dependency failures for libssl which we can resolve by running:
+
+```bash
+sudo apt-get install libssl-dev
+```
+
+### Creating the `rootfs` Image
 
 
 ### Starting Firecracker
