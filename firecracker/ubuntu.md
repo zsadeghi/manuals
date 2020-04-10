@@ -122,6 +122,31 @@ sudo apt-get install libssl-dev
 
 ### Creating the `rootfs` Image
 
+First create a volume file with `ext4` format:
+
+```bash
+dd if=/dev/zero of=rootfs.ext4 bs=1M count=50
+```
+Then we create an empty file system on the file that was created:
+
+```bash
+mkfs.ext4 rootfs.ext4
+```
+So create a path to mount the file:
+
+```bash
+mkdir /tmp/my-rootfs
+```
+Now mount the ext4 file over the directory we just created:
+
+```bash
+sudo mount rootfs.ext4 /tmp/my-rootfs
+```
+#### Install Docker
+
+To install Docker for Ubuntu follow the instructions on the official [Docker website](https://docs.docker.com/engine/install/ubuntu/) 
+
+
 
 ### Starting Firecracker
 
