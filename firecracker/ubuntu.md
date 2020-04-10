@@ -161,6 +161,8 @@ apk add util-linux
 
 # Set up a login terminal on the serial console (ttyS0):
 ln -s agetty /etc/init.d/agetty.ttyS0
+# Make sure that the Alpine instance starts without any login prompts.
+echo 'agetty_options="--autologin root --noclear"' >> /etc/conf.d/agetty
 echo ttyS0 > /etc/securetty
 rc-update add agetty.ttyS0 default
 
@@ -184,16 +186,12 @@ Finally,
 sudo umount /tmp/my-rootfs
 ```
 
-
-
-
 ### Starting Firecracker
 
 To start a guest machine we can either use Firecracker's socket API or use a configuration file.
 In this manual we have opted to use the API. 
 
 We need two terminal sessions; one to run Firecracker from, and the other to issue commands against the API.
-
 
 > To start off you can use [start.sh](https://github.com/zsadeghi/manuals/blob/master/firecracker/start.sh).
 
@@ -216,7 +214,7 @@ firecracker --api-sock /tmp/firecracker.socket
 In the second terminal session, we first need to set the guest kernel:
 
 ```bash
-kernel_path=$(pwd)"/hello-vmlinux.bin"
+kernel_path=$(pwd)"/linux.git/vmlinux"
 
 curl --unix-socket /tmp/firecracker.socket -i \
         -X PUT 'http://localhost/boot-source'   \
@@ -231,7 +229,7 @@ curl --unix-socket /tmp/firecracker.socket -i \
 Next, we need to set the rootfs:
 
 ```bash
-rootfs_path=$(pwd)"/hello-rootfs.ext4"
+rootfs_path=$(pwd)"/rootfs.ext4"
 curl --unix-socket /tmp/firecracker.socket -i \
   -X PUT 'http://localhost/drives/rootfs' \
   -H 'Accept: application/json'           \
@@ -258,9 +256,8 @@ curl --unix-socket /tmp/firecracker.socket -i \
 
 ### Using the Guest Machine
 
-Going back to the first terminal session, we should see a login prompt.
-
-To use the system we can use username `root` and password `root`.
+Going back to the first terminal session, we should see the Alpine prompt ready to use, since we 
+have already set up auto-login for this VM.
 
 To shut down the machine, we can run `reboot`, which would normally restart the system, but since
 Fircracker does not implement power management it will simply shut the VM down.
