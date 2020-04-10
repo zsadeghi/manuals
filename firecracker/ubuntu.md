@@ -142,9 +142,48 @@ Now mount the ext4 file over the directory we just created:
 ```bash
 sudo mount rootfs.ext4 /tmp/my-rootfs
 ```
-#### Install Docker
 
 To install Docker for Ubuntu follow the instructions on the official [Docker website](https://docs.docker.com/engine/install/ubuntu/) 
+
+Start Linux Alpine Docker image using the file we created as an external volume:
+
+```bash
+docker run -it --rm -v /tmp/my-rootfs:/my-rootfs alpine
+```
+Inside the Alpine image we will set up the bare minimum openRC instance:
+
+```bash
+apk add openrc
+apk add util-linux
+```
+
+```bash
+
+# Set up a login terminal on the serial console (ttyS0):
+ln -s agetty /etc/init.d/agetty.ttyS0
+echo ttyS0 > /etc/securetty
+rc-update add agetty.ttyS0 default
+
+# Make sure special file systems are mounted on boot:
+rc-update add devfs boot
+rc-update add procfs boot
+rc-update add sysfs boot
+
+# Then, copy the newly configured system to the rootfs image:
+for d in bin etc lib root sbin usr; do tar c "/$d" | tar x -C /my-rootfs; done
+for dir in dev proc run sys var; do mkdir /my-rootfs/${dir}; done
+
+# All done, exit docker shell
+exit
+
+```
+
+Finally,
+
+```bash
+sudo umount /tmp/my-rootfs
+```
+
 
 
 
