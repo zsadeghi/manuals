@@ -61,6 +61,7 @@ then
     echo ""
     echo "To use this script, in one terminal session, use the <listen> directive,"
     echo "and in another session, use the <start> directive."
+    exit 0
   fi
   if [[ "${target}" == "listen" ]];
   then
@@ -140,7 +141,11 @@ then
          }'
 elif [[ "${directive}" == "listen" ]];
 then
-	echo "Starting firecracker guest server"
+	echo "Starting firecracker guest server."
+	echo ""
+	echo "While this server is up, go and use the same command with the <start> directive"
+	echo "in another terminal session to run a guest OS, then come back here to use that"
+	echo "guest OS."
 	rm -f /tmp/firecracker.socket
 	firecracker --api-sock /tmp/firecracker.socket
 else
