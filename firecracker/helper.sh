@@ -7,6 +7,8 @@ then
   exit 1
 fi
 
+socket_file="${FIRECRACKER_SOCKET_FILE}"
+[[ -z "${socket_file}" ]] && socket_file="/tmp/firecracker.socket" 
 directive="$1"
 
 print_usage() {
@@ -24,7 +26,7 @@ print_flavors() {
 send_command() {
   local v_resource="$1"
   local v_command="$2"
-	curl -fsS --unix-socket /tmp/firecracker.socket -i \
+	curl -fsS --unix-socket ${socket_file} -i \
         -X PUT "http://localhost/${v_resource}"   \
         -H 'Accept: application/json'           \
         -H 'Content-Type: application/json'     \
@@ -141,8 +143,8 @@ then
 elif [[ "${directive}" == "listen" ]];
 then
 	echo "Starting firecracker guest server"
-	rm -f /tmp/firecracker.socket
-	firecracker --api-sock /tmp/firecracker.socket
+	rm -f ${socket_file}
+	firecracker --api-sock ${socket_file}
 else
   echo "Unknown directive: ${directive}"
   exit 1
