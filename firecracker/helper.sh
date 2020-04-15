@@ -86,8 +86,17 @@ then
     echo "To get help on a specific directive, enter:"
     echo "$0 help <directive>"
     echo ""
-    echo "To use this script, in one terminal session, use the <listen> directive,"
-    echo "and in another session, use the <start> directive."
+    echo "To use this script, if you have 'screen' installed, you can run:"
+    echo
+    echo "    $0 run <flavor>"
+    echo
+    echo "See '$0 help run' for more info."
+    echo
+    echo "If you do not have screen installed, or if you want more controll"
+    echo "then, in one terminal session, use the <listen> directive:"
+    echo "   $0 listen"
+    echo "and in another session, use the <start> directive:"
+    echo "   $0 start <flavor>"
   fi
   if [[ "${target}" == "listen" ]];
   then
