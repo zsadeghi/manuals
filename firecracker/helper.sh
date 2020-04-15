@@ -86,7 +86,7 @@ then
     echo "To get help on a specific directive, enter:"
     echo "$0 help <directive>"
     echo ""
-    echo "To use this script, if you have 'screen' installed, you can run:"
+    echo "To use this script, if you have 'tmux' installed, you can run:"
     echo
     echo "    $0 run <flavor>"
     echo
@@ -184,11 +184,11 @@ then
 	firecracker --api-sock ${socket_file}
 elif [[ "${directive}" == "run" ]];
 then
-  if [[ -z "$(command -v screen)" ]];
+  if [[ -z "$(command -v tmux)" ]];
   then
-    echo "You need to install screen to be able to do this."
+    echo "You need to install 'tmux' to be able to do this."
     echo "On Ubuntu, you can get screen by typing:"
-    echo "    sudo apt install screen"
+    echo "    sudo apt install tmux"
     exit 1
   fi
   export FIRECRACKER_SOCKET_FILE="$(mktemp)"
@@ -254,17 +254,18 @@ then
       read -n 1 -s -r -p "Press any key to boot into your guest OS ..."
     fi
   fi
-  screen_name="$(basename "${FIRECRACKER_SOCKET_FILE}")"
-  screen -dmS "${screen_name}" $0 listen
+  screen_name="$(echo "$(basename "${FIRECRACKER_SOCKET_FILE}")" | tr '.' '_')"
+  tmux new-session -d -s "${screen_name}" "$0 listen"
+  tmux set-option -t "${screen_name}" status off
   $0 start "${flavor}"
   if [[ ${opt_detach} == 0 ]];
   then
-    screen -x "${screen_name}"
+    tmux attach -t "${screen_name}"
   else
     echo "To attach to the guest OS, type:"
-    echo "    screen -x ${screen_name}"
+    echo "    tmux attach -t ${screen_name}"
     echo "To stop the session type:"
-    echo "    screen -S ${screen_name} -X quit"
+    echo "    tmux kill-session -t ${screen_name}"
   fi
 else
   echo "Unknown directive: ${directive}"
