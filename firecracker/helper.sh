@@ -159,6 +159,14 @@ then
      		 \"is_root_device\": true,
      		 \"is_read_only\": false
  	     }"
+
+  echo "Setting up interface eth0"
+  send_command "network-interfaces/eth0" '{
+      "iface_id": "eth0",
+      "guest_mac": "AA:FC:00:00:00:01",
+      "host_dev_name": "tap0"
+    }'
+
   echo "Starting the guest OS: ${flavor_name}"
   send_command "actions" '{
         	"action_type": "InstanceStart"
@@ -187,6 +195,7 @@ then
   flavor="$2"
   flavor_name=$(check_flavor "${flavor}")
   opt_detach=0
+  opt_auto_net=0
   if [[ -z "${flavor_name}" ]];
   then
     exit 1
@@ -201,12 +210,46 @@ then
       -d|--detach)
 	opt_detach=1
       ;;
+      -A|--auto-net)
+	opt_auto_net=1
+      ;;
       *)
         echo "Unsupported option: ${opt}"
 	exit 1
       ;;
     esac
   done
+  if [[ ${opt_auto_net} == 1 ]];
+  then
+    # Courtesy of https://github.com/firecracker-microvm/firecracker/blob/master/docs/network-setup.md
+    if [[ -n "$(ip a | grep tap0)" ]];
+    then
+      echo "A device named tap0 already exists. Deleting it now."
+      sudo ip link del tap0
+    fi
+    echo "Automatically setting up the host network for routing"
+    net_int=$(ip addr | awk '/state UP/ {print $2}' | cut -d':' -f 1)
+    echo "We think your active network interface is ${net_int}"
+    echo "If this is wrong, things could go bad. Press Ctrl+C now to abort."
+    echo "Waiting for 3 seconds ..."
+    sleep 3
+    sudo iptables-save > ~/iptables.rules.old
+    sudo ip tuntap add tap0 mode tap
+    sudo ip addr add 172.16.0.1/24 dev tap0
+    sudo ip link set tap0 up
+    sudo sh -c "echo 1 > /proc/sys/net/ipv4/ip_forward"
+    sudo iptables -t nat -A POSTROUTING -o ${net_int} -j MASQUERADE
+    sudo iptables -A FORWARD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+    sudo iptables -A FORWARD -i tap0 -o ${net_int} -j ACCEPT
+    echo "Host setup is done."
+    echo "Copy down these commands so that you can run them in the guest machine:"
+    echo
+    echo "ip addr add 172.16.0.2/24 dev eth0"
+    echo "ip link set eth0 up"
+    echo "ip route add default via 172.16.0.1 dev eth0"
+    echo
+    read -n 1 -s -r -p "Press any key to boot into your guest OS ..."
+  fi
   screen_name="$(basename "${FIRECRACKER_SOCKET_FILE}")"
   screen -dmS "${screen_name}" $0 listen
   $0 start "${flavor}"
