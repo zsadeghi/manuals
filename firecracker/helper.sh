@@ -242,13 +242,17 @@ then
     sudo iptables -A FORWARD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
     sudo iptables -A FORWARD -i tap0 -o ${net_int} -j ACCEPT
     echo "Host setup is done."
-    echo "Copy down these commands so that you can run them in the guest machine:"
-    echo
-    echo "ip addr add 172.16.0.2/24 dev eth0"
-    echo "ip link set eth0 up"
-    echo "ip route add default via 172.16.0.1 dev eth0"
-    echo
-    read -n 1 -s -r -p "Press any key to boot into your guest OS ..."
+    # For ubuntu-bionic, these are now baked in the base rootfs image.
+    if [[ "${flavor}" != "ubuntu-bionic" ]];
+    then
+      echo "Copy down these commands so that you can run them in the guest machine:"
+      echo
+      echo "ip addr add 172.16.0.2/24 dev eth0"
+      echo "ip link set eth0 up"
+      echo "ip route add default via 172.16.0.1 dev eth0"
+      echo
+      read -n 1 -s -r -p "Press any key to boot into your guest OS ..."
+    fi
   fi
   screen_name="$(basename "${FIRECRACKER_SOCKET_FILE}")"
   screen -dmS "${screen_name}" $0 listen
