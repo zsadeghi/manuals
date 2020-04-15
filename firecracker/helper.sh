@@ -14,7 +14,7 @@ directive="$1"
 print_usage() {
   echo "Usage: $0 <directive>"
   echo ""
-  echo "<directive> can be one of 'start', 'listen', 'help', or 'kill'"
+  echo "<directive> can be one of 'start', 'listen', 'help', 'kill', or 'run'"
 }
 
 print_flavors() {
@@ -44,6 +44,31 @@ user_get_home() {
  fi
 }
 
+check_flavor() {
+  local flavor="$1"
+  if [[ -z "${flavor}" ]];
+  then
+    >&2 echo "You need to select a flavor."
+    >&2 echo ""
+    >&2 print_flavors
+    exit 1
+  fi
+  local flavor_name=""
+  if [[ "${flavor}" == "alpine" ]];
+  then
+    flavor_name="Linux Alpine, running on kernel v4.20"
+  elif [[ "${flavor}" == "ubuntu-bionic" ]];
+  then
+    flavor_name="Ubuntu Bionic Beaver (18.04 LTS), running on kernel 4.15"
+  else
+    >&2 echo "Unknown flavor ${flavor}"
+    >&2 echo ""
+    >&2 print_flavors
+    exit 1
+  fi
+  echo "${flavor_name}"
+}
+
 
 if [[ -z "${directive}" ]];
 then
@@ -69,13 +94,23 @@ then
     echo "Starts the firecracker with an open socket so that we can communicate with it."
   elif  [[ "${target}" == "start" ]];
   then
+    echo "Usage: $0 start <flavor>"
+    echo
     echo "Starts the Linux guest machine. This directive can take an argument:"
-    echo "$0 start <flavor>"
     echo
     print_flavors
   elif  [[ "${target}" == "kill" ]];
   then
+    echo "Usage: $0 kill"
+    echo ""
     echo "Kills the listening Firecracker instance, and the guest machine on it."
+  elif [[ "${target}" == "run" ]];
+  then
+    echo "Runs the indicated Linux flavor in the same TTY session using the 'start' and 'listen' commands combined."
+    echo ""
+    echo "Usage: $0 run <flavor> [options]"
+    echo ""
+    echo "For a list of supported flavors see: $0 help start"
   else
     echo "Unknown directive ${target}"
     exit 1
@@ -84,24 +119,9 @@ then
 elif [[ "${directive}" == "start" ]];
 then
   flavor="$2"
-  if [[ -z "${flavor}" ]];
+  flavor_name=$(check_flavor "${flavor}")
+  if [[ -z "${flavor_name}" ]];
   then
-    echo "You need to select a flavor."
-    echo ""
-    print_flavors
-    exit 1
-  fi
-  flavor_name=""
-  if [[ "${flavor}" == "alpine" ]];
-  then
-    flavor_name="Linux Alpine, running on kernel v4.20"
-  elif [[ "${flavor}" == "ubuntu-bionic" ]];
-  then
-    flavor_name="Ubuntu Bionic Beaver (18.04 LTS), running on kernel 4.15"
-  else
-    echo "Unknown flavor ${flavor}"
-    echo ""
-    print_flavors
     exit 1
   fi
   if [[ ! -d "$(user_get_home)/.firecracker-starter/${flavor}" ]];
@@ -145,6 +165,51 @@ then
 	echo "Starting firecracker guest server"
 	rm -f ${socket_file}
 	firecracker --api-sock ${socket_file}
+elif [[ "${directive}" == "run" ]];
+then
+  if [[ -z "$(command -v screen)" ]];
+  then
+    echo "You need to install screen to be able to do this."
+    echo "On Ubuntu, you can get screen by typing:"
+    echo "    sudo apt install screen"
+    exit 1
+  fi
+  export FIRECRACKER_SOCKET_FILE="$(mktemp)"
+  flavor="$2"
+  flavor_name=$(check_flavor "${flavor}")
+  opt_detach=0
+  if [[ -z "${flavor_name}" ]];
+  then
+    exit 1
+  fi
+  shift
+  shift
+  while [[ $# -gt 0 ]];
+  do
+    opt="$1"
+    shift;
+    case "${opt}" in
+      -d|--detach)
+	opt_detach=1
+      ;;
+      *)
+        echo "Unsupported option: ${opt}"
+	exit 1
+      ;;
+    esac
+  done
+  screen_name="$(basename "${FIRECRACKER_SOCKET_FILE}")"
+  screen -dmS "${screen_name}" $0 listen
+  $0 start "${flavor}"
+  if [[ ${opt_detach} == 0 ]];
+  then
+    screen -x "${screen_name}"
+  else
+    echo "To attach to the guest OS, type:"
+    echo "    screen -x ${screen_name}"
+    echo "To stop the session type:"
+    echo "    screen -S ${screen_name} -X quit"
+  fi
 else
   echo "Unknown directive: ${directive}"
   exit 1
